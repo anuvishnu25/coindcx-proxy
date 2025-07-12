@@ -1,4 +1,5 @@
-// index.mjs
+// ✅ index.mjs - Fully working CoinDCX Proxy Server
+
 import express from 'express';
 import fetch from 'node-fetch';
 import crypto from 'crypto';
@@ -6,20 +7,23 @@ import crypto from 'crypto';
 const app = express();
 app.use(express.json());
 
+// 🔐 Generate HMAC Signature
 function generateSignature(timestamp, method, endpoint, body, secret) {
-  const stableBody = body
-    ? JSON.stringify({
-        market: body.market,
-        side: body.side,
-        order_type: body.order_type,
-        quantity: body.quantity
-      })
-    : '';
-
+  let stableBody = '';
+  if (body) {
+    const stable = {
+      market: body.market,
+      side: body.side,
+      order_type: body.order_type,
+      quantity: body.quantity
+    };
+    stableBody = JSON.stringify(stable);
+  }
   const payload = timestamp + method + endpoint + stableBody;
   return crypto.createHmac('sha256', secret).update(payload).digest('hex');
 }
 
+// 📦 /place-order Route
 app.post('/place-order', async (req, res) => {
   const { market, side, order_type, quantity, headers } = req.body;
   const endpoint = '/exchange/v1/orders/create';
@@ -40,7 +44,6 @@ app.post('/place-order', async (req, res) => {
       },
       body: JSON.stringify(body)
     });
-
     const data = await response.json();
     res.json(data);
   } catch (err) {
@@ -48,11 +51,13 @@ app.post('/place-order', async (req, res) => {
   }
 });
 
+// 💰 /get-balance Route
 app.post('/get-balance', async (req, res) => {
   const { symbol, headers } = req.body;
   const endpoint = '/exchange/v1/users/balances';
   const url = `https://api.coindcx.com${endpoint}`;
   const timestamp = Date.now().toString();
+
   const signature = generateSignature(timestamp, 'GET', endpoint, null, headers.apiSecret);
 
   try {
@@ -74,8 +79,10 @@ app.post('/get-balance', async (req, res) => {
   }
 });
 
+// ✅ Health Check
 app.get('/', (req, res) => {
   res.send('✅ CoinDCX Proxy is Running');
 });
 
+// 🌐 Start Server
 app.listen(3000, () => console.log('Server running on port 3000'));
