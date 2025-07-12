@@ -5,6 +5,7 @@ import crypto from 'crypto';
 const app = express();
 app.use(express.json());
 
+// 🔐 Generate HMAC Signature
 function generateSignature(timestamp, method, endpoint, body, secret) {
   const stableBody = body
     ? JSON.stringify({
@@ -18,6 +19,7 @@ function generateSignature(timestamp, method, endpoint, body, secret) {
   return crypto.createHmac('sha256', secret).update(payload).digest('hex');
 }
 
+// 🧾 Place Order Route
 app.post('/place-order', async (req, res) => {
   const { market, side, order_type, quantity, headers } = req.body;
   const endpoint = '/exchange/v1/orders/create';
@@ -46,12 +48,12 @@ app.post('/place-order', async (req, res) => {
   }
 });
 
+// 💰 Balance Fetch Route
 app.post('/get-balance', async (req, res) => {
   const { symbol, headers } = req.body;
   const endpoint = '/exchange/v1/users/balances';
   const url = `https://api.coindcx.com${endpoint}`;
   const timestamp = Date.now().toString();
-
   const signature = generateSignature(timestamp, 'GET', endpoint, null, headers.apiSecret);
 
   try {
@@ -73,8 +75,10 @@ app.post('/get-balance', async (req, res) => {
   }
 });
 
+// 🔍 Health Check
 app.get('/', (req, res) => {
   res.send('✅ CoinDCX Proxy is Running');
 });
 
-app.listen(3000, () => console.log('✅ Server running on port 3000'));
+// 🚀 Start Server
+app.listen(3000, () => console.log('Server running on port 3000'));
